@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+.DS_Store
+.npm/
+.config/
+.degit/
+**/node_modules/
+**/.env
+**/.env.*
+**/dist/
+**/build/
+**/.DS_Store

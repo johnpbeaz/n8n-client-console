@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  client
+}
+
+enum WorkflowRunStatus {
+  success
+  failed
+}
+
+enum PasswordTokenType {
+  setup
+  reset
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         UserRole @default(client)
+  clientId     String?
+
+  client Client? @relation(fields: [clientId], references: [id])
+  clientEmails ClientEmail[]
+  passwordTokens PasswordToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Client {
+  id          String     @id @default(uuid())
+  name        String
+  description String?
+  n8nProjectId String?
+  archivedAt   DateTime?
+
+  users     User[]
+  workflows Workflow[]
+  runs      WorkflowRun[]
+  emails    ClientEmail[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Workflow {
+  id             String    @id @default(uuid())
+  name           String
+  description    String?
+  webhookUrl     String
+  webhookMethod  String?
+  n8nWorkflowId  String    @unique
+  clientId       String
+  lastRunAt      DateTime?
+  n8nProjectId   String?
+
+  client Client        @relation(fields: [clientId], references: [id])
+  runs   WorkflowRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WorkflowRun {
+  id              String            @id @default(uuid())
+  workflowId      String
+  clientId        String?
+  status          WorkflowRunStatus
+  requestPayload  Json
+  responsePayload Json?
+
+  workflow Workflow @relation(fields: [workflowId], references: [id])
+  client   Client?  @relation(fields: [clientId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowId])
+  @@index([clientId])
+}
+
+model AppSetting {
+  key       String   @id
+  value     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ClientEmail {
+  id        String   @id @default(uuid())
+  clientId  String
+  userId    String
+  email     String
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([clientId, email])
+  @@unique([userId])
+  @@index([clientId])
+}
+
+model PasswordToken {
+  id        String             @id @default(uuid())
+  userId    String
+  tokenHash String             @unique
+  type      PasswordTokenType
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
