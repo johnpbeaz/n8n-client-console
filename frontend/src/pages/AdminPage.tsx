@@ -420,6 +420,29 @@ export const AdminPage = () => {
     },
   });
 
+  const syncClientWorkflowsMutation = useMutation({
+    mutationFn: () => api.admin.syncClientWorkflows(selectedClientId, token as string),
+    onMutate: () => {
+      setClientMessage(null);
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-client-workflows', selectedClientId] });
+      queryClient.invalidateQueries({ queryKey: ['admin-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-n8n-workflows'] });
+      setSelectedClientWorkflowIds(result.workflows.map((workflow) => workflow.n8nWorkflowId));
+      setClientMessage(
+        result.synced
+          ? `Synced ${result.synced} workflow${result.synced === 1 ? '' : 's'} from n8n.`
+          : 'Nothing new to sync from n8n.',
+      );
+    },
+    onError: (error) => {
+      setClientMessage(
+        error instanceof Error ? error.message : 'Failed to sync workflows from n8n. Try again shortly.',
+      );
+    },
+  });
+
   const updateClientEmailsMutation = useMutation({
     mutationFn: (payload: { emails: { id?: string; email: string }[] }) =>
       api.admin.updateClientEmails(selectedClientId, payload, token as string),
@@ -1073,13 +1096,24 @@ export const AdminPage = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => workflowsQuery.refetch()}
-                  disabled={workflowsQuery.isFetching}
+                  onClick={() => {
+                    if (!selectedClientId) {
+                      return;
+                    }
+                    syncClientWorkflowsMutation.mutate();
+                  }}
+                  disabled={syncClientWorkflowsMutation.isPending || !selectedClientId}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-600 shadow-sm transition hover:border-slate-300 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  title="Refresh workflows"
+                  title={
+                    syncClientWorkflowsMutation.isPending
+                      ? 'Syncing…'
+                      : 'Sync workflows from n8n'
+                  }
+                  aria-label="Sync workflows from n8n"
                 >
-                  <ArrowPathIcon className="h-5 w-5" />
-                  <span className="sr-only">Refresh workflows</span>
+                  <ArrowPathIcon
+                    className={`h-5 w-5 ${syncClientWorkflowsMutation.isPending ? 'animate-spin' : ''}`}
+                  />
                 </button>
                 {selectedClient?.archivedAt ? (
                   <button

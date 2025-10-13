@@ -416,23 +416,28 @@ export const syncClientWorkflows = async (req: Request, res: Response) => {
     where: { id: clientId },
   });
 
-  if (!client || !client.n8nProjectId) {
-    res.status(404).json({ error: 'Client or n8n project not found' });
+  if (!client) {
+    res.status(404).json({ error: 'Client not found' });
     return;
   }
 
   try {
     const externalWorkflows = await listWorkflowsInProject(client.n8nProjectId);
 
-    const operations = externalWorkflows.map((workflow) =>
-      prisma.workflow.upsert({
+    const operations = externalWorkflows.map((workflow) => {
+      const method =
+        typeof workflow.webhookMethod === 'string' && workflow.webhookMethod.length > 0
+          ? workflow.webhookMethod.toUpperCase()
+          : null;
+
+      return prisma.workflow.upsert({
         where: { n8nWorkflowId: String(workflow.id) },
         update: {
           name: workflow.name,
           clientId: client.id,
           n8nProjectId: workflow.projectId ?? client.n8nProjectId,
           webhookUrl: (workflow.webhookUrl as string | null) ?? '',
-          webhookMethod: (workflow.webhookMethod as string | null) ?? null,
+          webhookMethod: method,
         },
         create: {
           name: workflow.name,
@@ -440,11 +445,11 @@ export const syncClientWorkflows = async (req: Request, res: Response) => {
           clientId: client.id,
           description: null,
           webhookUrl: (workflow.webhookUrl as string | null) ?? '',
-          webhookMethod: (workflow.webhookMethod as string | null) ?? null,
+          webhookMethod: method,
           n8nProjectId: workflow.projectId ?? client.n8nProjectId,
         },
-      }),
-    );
+      });
+    });
 
     const synced = await prisma.$transaction(operations);
 

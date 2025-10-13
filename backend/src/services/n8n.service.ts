@@ -77,9 +77,8 @@ const extractWebhookInfo = (workflow: any, resolvedWebhookBaseUrl: string | null
   const webhookNode = nodes.find((node: any) => node?.type === 'n8n-nodes-base.webhook');
   const path = webhookNode?.parameters?.path;
   const methodParam = webhookNode?.parameters?.httpMethod;
-  const method = (
-    typeof methodParam === 'string' && methodParam.length > 0 ? methodParam : 'POST'
-  ).toUpperCase();
+  const method =
+    typeof methodParam === 'string' && methodParam.length > 0 ? methodParam.toUpperCase() : null;
 
   if (!path || !resolvedWebhookBaseUrl) {
     return null;
@@ -116,7 +115,8 @@ export const listWorkflowsInProject = async (projectId?: string | null) => {
         webhookUrl: webhookInfo?.url ?? null,
         webhookMethod: webhookInfo?.method ?? null,
       } as N8nWorkflowSummary;
-    });
+    })
+    .filter((workflow: N8nWorkflowSummary) => Boolean(workflow.webhookUrl));
 };
 
 export const listProjects = async () => {

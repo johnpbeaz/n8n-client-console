@@ -1,5 +1,6 @@
-import type { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
+import type { Request, Response } from 'express';
+import { isAxiosError } from 'axios';
 
 import { prisma } from '../lib/prisma';
 import { triggerWebhook } from '../services/n8n.service';
@@ -49,28 +50,67 @@ export const triggerWorkflow = async (req: Request, res: Response) => {
 
   const auditPayload = buildAuditPayload(req.body, user);
 
-  try {
-    if (!workflow.webhookUrl) {
-      res.status(502).json({ error: 'Workflow does not have a webhook configured' });
-      return;
+  if (!workflow.webhookUrl) {
+    res.status(502).json({ error: 'Workflow does not have a webhook configured' });
+    return;
+  }
+
+  const storedMethod =
+    typeof workflow.webhookMethod === 'string' && workflow.webhookMethod.length > 0
+      ? workflow.webhookMethod.toUpperCase()
+      : null;
+
+  const fallbackMethods = ['POST', 'GET', 'PUT', 'PATCH', 'DELETE'];
+  const methodsToTry = [
+    ...(storedMethod ? [storedMethod] : []),
+    ...fallbackMethods,
+  ].filter((method, index, arr) => arr.indexOf(method) === index);
+
+  const attemptedMethods: string[] = [];
+  let usedMethod: string | null = null;
+  let responsePayload: unknown;
+  let lastError: unknown;
+
+  for (const method of methodsToTry) {
+    attemptedMethods.push(method);
+    try {
+      const response = await triggerWebhook(
+        workflow.webhookUrl,
+        {
+          ...req.body,
+          metadata: auditPayload,
+        },
+        method,
+      );
+      usedMethod = method;
+      responsePayload = response;
+      break;
+    } catch (error) {
+      lastError = error;
+      if (isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status === 404 || status === 405) {
+          continue;
+        }
+      }
+      break;
     }
+  }
 
-    const response = await triggerWebhook(
-      workflow.webhookUrl,
-      {
-        ...req.body,
-        metadata: auditPayload,
-      },
-      workflow.webhookMethod ?? 'POST',
-    );
+  const runRequestPayload = {
+    ...auditPayload,
+    httpMethod: usedMethod,
+    attemptedMethods,
+  } as Prisma.InputJsonObject;
 
+  if (usedMethod) {
     const run = await prisma.workflowRun.create({
       data: {
         workflowId: workflow.id,
         clientId: workflow.clientId,
         status: 'success',
-        responsePayload: (response ?? Prisma.JsonNull) as Prisma.InputJsonValue,
-        requestPayload: auditPayload,
+        responsePayload: (responsePayload ?? Prisma.JsonNull) as Prisma.InputJsonValue,
+        requestPayload: runRequestPayload,
       },
     });
 
@@ -78,36 +118,38 @@ export const triggerWorkflow = async (req: Request, res: Response) => {
       where: { id: workflow.id },
       data: {
         lastRunAt: run.createdAt,
+        webhookMethod: usedMethod,
       },
     });
 
-    res.json({ success: true, response });
-  } catch (error) {
-    const failurePayload =
-      error instanceof Error
-        ? { message: error.message }
-        : { error: String(error) };
-
-    const run = await prisma.workflowRun.create({
-      data: {
-        workflowId: workflow.id,
-        clientId: workflow.clientId,
-        status: 'failed',
-        responsePayload: failurePayload as Prisma.InputJsonValue,
-        requestPayload: auditPayload,
-      },
-    });
-
-    await prisma.workflow.update({
-      where: { id: workflow.id },
-      data: {
-        lastRunAt: run.createdAt,
-      },
-    });
-
-    res.status(502).json({
-      error: 'Failed to trigger workflow',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    });
+    res.json({ success: true, response: responsePayload });
+    return;
   }
+
+  const failurePayload =
+    lastError instanceof Error
+      ? { message: lastError.message }
+      : { error: String(lastError) };
+
+  const run = await prisma.workflowRun.create({
+    data: {
+      workflowId: workflow.id,
+      clientId: workflow.clientId,
+      status: 'failed',
+      responsePayload: failurePayload as Prisma.InputJsonValue,
+      requestPayload: runRequestPayload,
+    },
+  });
+
+  await prisma.workflow.update({
+    where: { id: workflow.id },
+    data: {
+      lastRunAt: run.createdAt,
+    },
+  });
+
+  res.status(502).json({
+    error: 'Failed to trigger workflow',
+    details: lastError instanceof Error ? lastError.message : 'Unknown error',
+  });
 };

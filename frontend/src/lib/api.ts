@@ -33,6 +33,11 @@ type ResetClientPasswordResponse = {
   invitation: Invitation;
 };
 
+type SyncClientWorkflowsResponse = {
+  synced: number;
+  workflows: Workflow[];
+};
+
 type UpdateN8nConfigPayload = {
   baseUrl: string;
   webhookBaseUrl?: string | null;
@@ -142,6 +147,11 @@ export const api = {
       request<{ workflows: Workflow[] }>(`/admin/clients/${clientId}/workflows`, {
         method: 'PUT',
         body: JSON.stringify({ workflowIds }),
+        token,
+      }),
+    syncClientWorkflows: (clientId: string, token: string) =>
+      request<SyncClientWorkflowsResponse>(`/admin/clients/${clientId}/sync`, {
+        method: 'POST',
         token,
       }),
     updateClientEmails: (clientId: string, payload: UpdateClientEmailsPayload, token: string) =>
