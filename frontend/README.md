@@ -1,4 +1,4 @@
-# AI Dashboard Frontend (React + Vite)
+# Catalyst Frontend (React + Vite)
 
 Client console that authenticates against the Node/Express API, lists a client’s workflows, and allows administrators to sync workflow metadata from n8n.
 
@@ -31,4 +31,3 @@ npm run preview
 ```
 
 The Dockerfile in this directory builds the static assets and serves them via nginx (port 80 inside the container).
-

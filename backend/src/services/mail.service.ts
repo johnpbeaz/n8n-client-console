@@ -17,12 +17,12 @@ interface PasswordEmailPayload {
 
 const buildEmailContent = ({ clientName, setupUrl, expiresAt, mode }: PasswordEmailPayload) => {
   const subject =
-    mode === 'reset' ? 'Reset your AI Dashboard password' : 'Set up your AI Dashboard access';
+    mode === 'reset' ? 'Reset your Catalyst password' : 'Set up your Catalyst access';
 
   const intro =
     mode === 'reset'
-      ? 'You requested a new password for the AI Dashboard.'
-      : 'You have been invited to the AI Dashboard.';
+      ? 'You requested a new password for Catalyst.'
+      : 'You have been invited to Catalyst.';
 
   const actionLine =
     mode === 'reset'
@@ -43,7 +43,7 @@ const buildEmailContent = ({ clientName, setupUrl, expiresAt, mode }: PasswordEm
     '',
     'If you did not expect this message, you can ignore it.',
     '',
-    'AI Dashboard',
+    'Catalyst',
   ].join('\n');
 
   const htmlBody = [
@@ -53,7 +53,7 @@ const buildEmailContent = ({ clientName, setupUrl, expiresAt, mode }: PasswordEm
     `<p><a href="${setupUrl}" style="color:#1d4ed8">Set your password</a></p>`,
     `<p>${expiryLine}</p>`,
     '<p>If you did not expect this message, you can ignore it.</p>',
-    '<p>AI Dashboard</p>',
+    '<p>Catalyst</p>',
   ].join('');
 
   return { subject, textBody, htmlBody };

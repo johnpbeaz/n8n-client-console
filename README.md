@@ -1,6 +1,6 @@
-# n8n Client Console
+# Catalyst
 
-A full-stack control panel for reselling n8n automations to client organizations. The console gives each client a branded dashboard where they can trigger the workflows you grant them, while your team manages access, invitations, and n8n project sync from an admin view.
+A full-stack control panel for reselling n8n automations to client organizations. Catalyst gives each client a branded dashboard where they can trigger the workflows you grant them, while your team manages access, invitations, and n8n project sync from an admin view.
 
 ## Features
 
@@ -88,7 +88,7 @@ To seed an initial admin account:
 ```bash
 SEED_ADMIN_EMAIL=admin@example.com \
 SEED_ADMIN_PASSWORD=change-me \
-SEED_ADMIN_NAME="Console Admin" \
+SEED_ADMIN_NAME="Catalyst Admin" \
 npx prisma db seed
 ```
 
@@ -122,7 +122,7 @@ Key values used by the API:
 | `APP_BASE_URL`        | ✅ | Public URL of this dashboard (used in invitation links) |
 | `MAILGUN_API_KEY`     | ❌ | Enable Mailgun email delivery |
 | `MAILGUN_DOMAIN`      | ❌ | Mailgun domain (e.g. `mg.example.com`) |
-| `MAILGUN_FROM_EMAIL`  | ❌ | From address (e.g. `AI Dashboard <noreply@example.com>`) |
+| `MAILGUN_FROM_EMAIL`  | ❌ | From address (e.g. `Catalyst <noreply@example.com>`) |
 | `MAILGUN_BASE_URL`    | ❌ | Mailgun API base (defaults to `https://api.mailgun.net`) |
 
 ### Frontend (`frontend/.env`)
@@ -191,4 +191,3 @@ Use pull requests to promote across branches once CI/CD is in place.
 ## License
 
 This project is proprietary to John Beasley. Contact `johnpbeaz@gmail.com` for usage inquiries.
-

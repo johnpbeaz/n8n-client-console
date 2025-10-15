@@ -1,4 +1,4 @@
-# AI Dashboard Backend
+# Catalyst Backend
 
 TypeScript/Express API that authenticates users, proxies workflow triggers to n8n, and serves client/admin data to the React dashboard.
 

@@ -76,7 +76,7 @@ export const PasswordSetupPage = () => {
       <div className="w-full max-w-md rounded-xl bg-white p-8 shadow">
         <h1 className="text-xl font-semibold text-slate-900">Set your password</h1>
         <p className="mt-3 text-sm text-slate-600">
-          Create a password for your AI Dashboard account. Passwords must be at least 8 characters long.
+          Create a password for your Catalyst account. Passwords must be at least 8 characters long.
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
